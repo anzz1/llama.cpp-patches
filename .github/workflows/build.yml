@@ -57,6 +57,7 @@ jobs:
 
       - name: Test
         run: |
+          cd build
           ctest --output-on-failure
 
   macOS-latest-make:
@@ -97,6 +98,7 @@ jobs:
 
       - name: Test
         run: |
+          cd build
           ctest --output-on-failure
 
   windows-latest-cmake:
@@ -117,6 +119,7 @@ jobs:
 
       - name: Test
         run: |
+          cd build
           ctest -C Release --output-on-failure
 
       - name: Get commit hash
