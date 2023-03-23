@@ -145,7 +145,7 @@ jobs:
       - name: Create release
         id: create_release
         if: ${{ ( github.event_name == 'push' && github.ref == 'refs/heads/master' ) || github.event.inputs.create_release == 'true' }}
-        uses: zendesk/action-create-release@v1
+        uses: anzz1/action-create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
