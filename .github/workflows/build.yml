@@ -123,8 +123,8 @@ jobs:
           mkdir build
           cd build
           mkdir avx2 & mkdir avx
-          cmake ..
-          cmake -B . --build ./avx2 --config Release && cmake --build ./avx --config Release -DLLAMA_AVX2=OFF
+          cmake -S .. -B ./avx2 && cmake -S .. -B ./avx -DLLAMA_AVX2=OFF
+          cmake --build ./avx2 --config Release && cmake --build ./avx --config Release 
 
       - name: Test
         id: cmake_test
