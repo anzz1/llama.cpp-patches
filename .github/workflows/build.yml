@@ -143,6 +143,7 @@ jobs:
           mkdir artifacts
           7z a .\artifacts\llama-${{ env.BRANCH_NAME }}-${{ steps.commit.outputs.short }}-bin-win-avx2-x64.zip .\build\avx2\bin\Release\*
           7z a .\artifacts\llama-${{ env.BRANCH_NAME }}-${{ steps.commit.outputs.short }}-bin-win-avx-x64.zip .\build\avx\bin\Release\*
+          7z a .\artifacts\llama-${{ env.BRANCH_NAME }}-${{ steps.commit.outputs.short }}-bin-win-avx512-x64.zip .\build\avx512\bin\Release\*
 
       - name: Create release
         id: create_release
