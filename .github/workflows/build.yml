@@ -122,14 +122,14 @@ jobs:
         run: |
           mkdir build
           cd build
-          mkdir avx2 & mkdir avx
-          cmake -S .. -B ./avx2 && cmake -S .. -B ./avx -DLLAMA_AVX2=OFF
-          cmake --build ./avx2 --config Release && cmake --build ./avx --config Release 
+          mkdir avx2 & mkdir avx & mkdir avx512
+          cmake -S .. -B ./avx2 && cmake -S .. -B ./avx -DLLAMA_AVX2=OFF && cmake -S .. -B ./avx512 -DLLAMA_AVX512=ON
+          cmake --build ./avx2 --config Release && cmake --build ./avx --config Release && cmake --build ./avx512 --config Release 
 
       - name: Test
         id: cmake_test
         run: |
-          cd build/avx2 && ctest -C Release --output-on-failure && cd ../avx && ctest -C Release --output-on-failure
+          cd build/avx2 && ctest -C Release --output-on-failure && cd ../avx && ctest -C Release --output-on-failure && cd ../avx512 && ctest -C Release --output-on-failure
 
       - name: Get commit hash
         id: commit
