@@ -64,6 +64,38 @@ jobs:
           cd build
           ctest --output-on-failure
 
+  ubuntu-latest-cmake-sanitizer:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        sanitizer: [ADDRESS, THREAD, UNDEFINED]
+
+    steps:
+      - name: Clone
+        id: checkout
+        uses: actions/checkout@v1
+
+      - name: Dependencies
+        id: depends
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential
+
+      - name: Build
+        id: cmake_build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DLLAMA_SANITIZE_${{ matrix.sanitizer }}=ON
+          cmake --build . --config Release
+
+      - name: Test
+        id: cmake_test
+        run: |
+          cd build
+          ctest --output-on-failure
+
   macOS-latest-make:
     runs-on: macos-latest
 
