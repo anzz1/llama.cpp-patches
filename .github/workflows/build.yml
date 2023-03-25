@@ -174,8 +174,6 @@ jobs:
       - name: Download artifacts
         id: download-artifact
         uses: actions/download-artifact@v3
-        with:
-          path: artifacts
 
       - name: Get commit hash
         id: commit
@@ -198,7 +196,7 @@ jobs:
             const path = require('path');
             const fs = require('fs');
             const release_id = '${{ steps.create_release.outputs.id }}';
-            for (let file of await fs.readdirSync('./artifacts')) {
+            for (let file of await fs.readdirSync('./artifact')) {
               if (path.extname(file) === '.zip') {
                 console.log('uploadReleaseAsset', file);
                 await github.repos.uploadReleaseAsset({
@@ -206,7 +204,7 @@ jobs:
                   repo: context.repo.repo,
                   release_id: release_id,
                   name: file,
-                  data: await fs.readFileSync(`./artifacts/${file}`)
+                  data: await fs.readFileSync(`./artifact/${file}`)
                 });
               }
             }
