@@ -129,8 +129,7 @@ jobs:
       - name: Test
         id: cmake_test
         run: |
-          cd build
-          ctest -C Release --output-on-failure
+          cd build/avx2 && ctest -C Release --output-on-failure && cd ../avx && ctest -C Release --output-on-failure
 
       - name: Get commit hash
         id: commit
