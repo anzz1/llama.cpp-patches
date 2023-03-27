@@ -407,7 +407,7 @@ int main(int argc, char ** argv) {
                 // potentially set color to indicate we are taking user input
                 set_console_state(CONSOLE_STATE_USER_INPUT);
 
-                printf("\n\n> ");
+                printf("\n> ");
 
                 std::string buffer;
                 if (!params.input_prefix.empty()) {
@@ -436,8 +436,6 @@ int main(int argc, char ** argv) {
                 // Add tokens to embd only if the input buffer is non-empty
                 // Entering a empty line lets the user pass control back
                 if (buffer.length() > 1) {
-                    printf("\n");
-
                     // consume, consume
                     n_consumed = embd_inp.size();
 
