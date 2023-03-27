@@ -377,7 +377,7 @@ int main(int argc, char ** argv) {
 
         // in interactive mode, and not currently processing queued inputs;
         // check if we should prompt the user for more
-        if (params.interactive && (int) embd_inp.size() <= n_consumed) {
+        if ((int) embd_inp.size() <= n_consumed) {
             // check for reverse prompt
             std::string last_output;
             for (auto id : last_n_tokens) {
@@ -395,8 +395,6 @@ int main(int argc, char ** argv) {
             }
 
             if (n_past > 0 && is_interacting) {
-                // consume, consume
-                n_consumed = embd_inp.size();
 
                 // potentially set color to indicate we are taking user input
                 set_console_state(CONSOLE_STATE_USER_INPUT);
@@ -429,6 +427,9 @@ int main(int argc, char ** argv) {
 
                 // Add tokens to buffer only if the line is non-empty.
                 if (buffer.length() > 1) {
+                    // consume, consume
+                    n_consumed = embd_inp.size();
+
                     // insert instruction prefix
                     embd_inp.insert(embd_inp.end(), inp_pfx.begin(), inp_pfx.end());
 
