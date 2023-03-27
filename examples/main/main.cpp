@@ -115,7 +115,6 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-
     // save choice to use color for later
     // (note for later: this is a slightly awkward choice)
     con_use_color = params.use_color;
@@ -413,7 +412,7 @@ int main(int argc, char ** argv) {
         // in interactive mode, and not currently processing queued inputs;
         // check if we should prompt the user for more
         if (params.interactive && (int) embd_inp.size() <= n_consumed) {
-        
+
             // check for reverse prompt
             if (params.antiprompt.size()) {
                 std::string last_output;
@@ -433,6 +432,7 @@ int main(int argc, char ** argv) {
             }
 
             if (n_past > 0 && is_interacting) {
+
                 // potentially set color to indicate we are taking user input
                 set_console_state(CONSOLE_STATE_USER_INPUT);
 
@@ -460,7 +460,7 @@ int main(int argc, char ** argv) {
                 // done taking input, reset color
                 set_console_state(CONSOLE_STATE_DEFAULT);
 
-                // Add tokens to buffer only if the input buffer is non-empty
+                // Add tokens to embd only if the input buffer is non-empty
                 // Entering a empty line lets the user pass control back
                 if (buffer.length() > 1) {
                     auto line_inp = ::llama_tokenize(ctx, buffer, false);
