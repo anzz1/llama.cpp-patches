@@ -232,11 +232,14 @@ int main(int argc, char ** argv) {
         for (int i = 0; i < (int) embd_inp.size(); i++) {
             fprintf(stderr, "%6d -> '%s'\n", embd_inp[i], llama_token_to_str(ctx, embd_inp[i]));
         }
+        if (params.n_keep > 0) {
         fprintf(stderr, "%s: static prompt based on n_keep: '", __func__);
-        for (int i = 0; i < params.n_keep; i++) {
-            fprintf(stderr, "%s", llama_token_to_str(ctx, embd_inp[i]));
+            for (int i = 0; i < params.n_keep; i++) {
+                fprintf(stderr, "%s", llama_token_to_str(ctx, embd_inp[i]));
+            }
+            fprintf(stderr, "'\n");
         }
-        fprintf(stderr, "'\n\n");
+        fprintf(stderr, "\n");
     }
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
@@ -274,7 +277,8 @@ int main(int argc, char ** argv) {
            " - Press Return to return control to LLaMa.\n"
            " - If you want to submit another line, end your input in '\\'.\n\n");
 
-    bool input_noecho = false;
+    bool is_antiprompt    = false;
+    bool input_noecho     = false;
 
     int n_past     = 0;
     int n_remain   = params.n_predict;
@@ -300,13 +304,13 @@ int main(int argc, char ** argv) {
                 // insert n_left/2 tokens at the start of embd from last_n_tokens
                 embd.insert(embd.begin(), last_n_tokens.begin() + n_ctx - n_left/2 - embd.size(), last_n_tokens.end() - embd.size());
 
-                printf("\n---\n");
-                printf("resetting: '");
-                for (int i = 0; i < (int) embd.size(); i++) {
-                    printf("%s", llama_token_to_str(ctx, embd[i]));
-                }
-                printf("'\n");
-                printf("\n---\n");
+                //printf("\n---\n");
+                //printf("resetting: '");
+                //for (int i = 0; i < (int) embd.size(); i++) {
+                //    printf("%s", llama_token_to_str(ctx, embd[i]));
+                //}
+                //printf("'\n");
+                //printf("\n---\n");
             }
 
             if (llama_eval(ctx, embd.data(), embd.size(), n_past, params.n_threads)) {
@@ -384,10 +388,13 @@ int main(int argc, char ** argv) {
                 last_output += llama_token_to_str(ctx, id);
             }
 
+            is_antiprompt = false;
+
             // Check if each of the reverse prompts appears at the end of the output.
             for (std::string & antiprompt : params.antiprompt) {
                 if (last_output.find(antiprompt.c_str(), last_output.length() - antiprompt.length(), antiprompt.length()) != std::string::npos) {
                     is_interacting = true;
+                    is_antiprompt = true;
                     set_console_state(CONSOLE_STATE_USER_INPUT);
                     fflush(stdout);
                     break;
@@ -425,13 +432,17 @@ int main(int argc, char ** argv) {
                 // done taking input, reset color
                 set_console_state(CONSOLE_STATE_DEFAULT);
 
-                // Add tokens to buffer only if the line is non-empty.
+                // Add tokens to buffer only if the input buffer is non-empty
+                // Entering a empty line lets the user pass control back
                 if (buffer.length() > 1) {
                     // consume, consume
                     n_consumed = embd_inp.size();
 
                     // insert instruction prefix
-                    embd_inp.insert(embd_inp.end(), inp_pfx.begin(), inp_pfx.end());
+                    // only if it wasn't already found as antiprompt
+                    if (!is_antiprompt) {
+                        embd_inp.insert(embd_inp.end(), inp_pfx.begin(), inp_pfx.end());
+                    }
 
                     auto line_inp = ::llama_tokenize(ctx, buffer, false);
                     embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
