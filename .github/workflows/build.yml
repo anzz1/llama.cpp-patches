@@ -177,9 +177,11 @@ jobs:
         continue-on-error: true
         run: |
           cd build
+          $vcdir = $(vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          $cl =  $(join-path $vcdir $("VC\Tools\MSVC\"$(gc -raw $(join-path $vcdir 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt')).Trim()"bin\Hostx64\x64\cl.exe")
           ( echo '#include <intrin.h>' && echo 'int main(void){unsigned int a[4];__cpuidex(a,7,0);return (a[1]&~65536);}' ) >> avf512f.c
-          & $(join-path $(vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) 'Common7\Tools\vsdevcmd.bat') & cl.exe /O2 /GS- /kernel avf512f.c /link /nodefaultlib /entry:main
-          & avx512f.exe && echo "AVX512F: YES" && ( echo HAS_AVX512F=1 >> $env:GITHUB_ENV ) || echo "AVX512F: NO"
+          & $cl /O2 /GS- /kernel avf512f.c /link /nodefaultlib /entry:main
+          .\avx512f.exe && echo "AVX512F: YES" && ( echo HAS_AVX512F=1 >> $env:GITHUB_ENV ) || echo "AVX512F: NO"
 
       - name: Test
         id: cmake_test
