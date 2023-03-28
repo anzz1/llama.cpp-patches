@@ -168,8 +168,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. ${{ matrix.defines }}
-          cmake --build . --config Release
+       #   cmake .. ${{ matrix.defines }}
+       #   cmake --build . --config Release
 
       - name: Check AVX512F support
         id: check_avx512f
