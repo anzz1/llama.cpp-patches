@@ -177,6 +177,7 @@ jobs:
         continue-on-error: true
         run: |
           cd build
+          & $(join-path $(vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath))
           ( echo '#include <intrin.h>' && echo 'int main(void){unsigned int a[4];__cpuidex(a,7,0);return (a[1]&~65536);}' ) >> avf512f.c
           cl /O2 /GS- /kernel avf512f.c /link /nodefaultlib /entry:main
           .\avx512f.exe && echo "AVX512F: YES" && ( echo HAS_AVX512F=1 >> $env:GITHUB_ENV ) || echo "AVX512F: NO"
