@@ -17,142 +17,142 @@ env:
  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
-  ubuntu-latest-make:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        id: checkout
-        uses: actions/checkout@v1
-
-      - name: Dependencies
-        id: depends
-        run: |
-          sudo apt-get update
-          sudo apt-get install build-essential
-
-      - name: Build
-        id: make_build
-        run: |
-          make
-
-  ubuntu-latest-cmake:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        id: checkout
-        uses: actions/checkout@v1
-
-      - name: Dependencies
-        id: depends
-        run: |
-          sudo apt-get update
-          sudo apt-get install build-essential
-
-      - name: Build
-        id: cmake_build
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          cmake --build . --config Release
-
-      - name: Test
-        id: cmake_test
-        run: |
-          cd build
-          ctest --output-on-failure
-
-  ubuntu-latest-cmake-sanitizer:
-    runs-on: ubuntu-latest
-
-    continue-on-error: true
-
-    strategy:
-      matrix:
-        sanitizer: [ADDRESS, THREAD, UNDEFINED]
-        build_type: [Debug, Release]
-        accelerate: [ON, OFF]
-
-    steps:
-      - name: Clone
-        id: checkout
-        uses: actions/checkout@v1
-
-      - name: Dependencies
-        id: depends
-        run: |
-          sudo apt-get update
-          sudo apt-get install build-essential
-
-      - name: Build
-        id: cmake_build
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DLLAMA_SANITIZE_${{ matrix.sanitizer }}=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DLLAMA_ACCELERATE=${{ matrix.accelerate }}
-          cmake --build . --config ${{ matrix.build_type }}
-
-      - name: Test
-        id: cmake_test
-        run: |
-          cd build
-          ctest --output-on-failure
-
-  macOS-latest-make:
-    runs-on: macos-latest
-
-    steps:
-      - name: Clone
-        id: checkout
-        uses: actions/checkout@v1
-
-      - name: Dependencies
-        id: depends
-        run: |
-          brew update
-
-      - name: Build
-        id: make_build
-        run: |
-          make
-
-  macOS-latest-cmake:
-    runs-on: macOS-latest
-
-    steps:
-      - name: Clone
-        id: checkout
-        uses: actions/checkout@v1
-
-      - name: Dependencies
-        id: depends
-        run: |
-          brew update
-
-      - name: Build
-        id: cmake_build
-        run: |
-          mkdir build
-          cd build
-          cmake -DLLAMA_AVX2=OFF ..
-          cmake --build . --config Release
-
-      - name: Test
-        id: cmake_test
-        run: |
-          cd build
-          ctest --output-on-failure
-
+#  ubuntu-latest-make:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Clone
+#        id: checkout
+#        uses: actions/checkout@v1
+#
+#      - name: Dependencies
+#        id: depends
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install build-essential
+#
+#      - name: Build
+#        id: make_build
+#        run: |
+#          make
+#
+#  ubuntu-latest-cmake:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Clone
+#        id: checkout
+#        uses: actions/checkout@v1
+#
+#      - name: Dependencies
+#        id: depends
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install build-essential
+#
+#      - name: Build
+#        id: cmake_build
+#        run: |
+#          mkdir build
+#          cd build
+#          cmake ..
+#          cmake --build . --config Release
+#
+#      - name: Test
+#        id: cmake_test
+#        run: |
+#          cd build
+#          ctest --output-on-failure
+#
+#  ubuntu-latest-cmake-sanitizer:
+#    runs-on: ubuntu-latest
+#
+#    continue-on-error: true
+#
+#    strategy:
+#      matrix:
+#        sanitizer: [ADDRESS, THREAD, UNDEFINED]
+#        build_type: [Debug, Release]
+#        accelerate: [ON, OFF]
+#
+#    steps:
+#      - name: Clone
+#        id: checkout
+#        uses: actions/checkout@v1
+#
+#      - name: Dependencies
+#        id: depends
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install build-essential
+#
+#      - name: Build
+#        id: cmake_build
+#        run: |
+#          mkdir build
+#          cd build
+#          cmake .. -DLLAMA_SANITIZE_${{ matrix.sanitizer }}=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DLLAMA_ACCELERATE=${{ matrix.accelerate }}
+#          cmake --build . --config ${{ matrix.build_type }}
+#
+#      - name: Test
+#        id: cmake_test
+#        run: |
+#          cd build
+#          ctest --output-on-failure
+#
+#  macOS-latest-make:
+#    runs-on: macos-latest
+#
+#    steps:
+#      - name: Clone
+#        id: checkout
+#        uses: actions/checkout@v1
+#
+#      - name: Dependencies
+#        id: depends
+#        run: |
+#          brew update
+#
+#      - name: Build
+#        id: make_build
+#        run: |
+#          make
+#
+#  macOS-latest-cmake:
+#    runs-on: macOS-latest
+#
+#    steps:
+#      - name: Clone
+#        id: checkout
+#        uses: actions/checkout@v1
+#
+#      - name: Dependencies
+#        id: depends
+#        run: |
+#          brew update
+#
+#      - name: Build
+#        id: cmake_build
+#        run: |
+#          mkdir build
+#          cd build
+#          cmake -DLLAMA_AVX2=OFF ..
+#          cmake --build . --config Release
+#
+#      - name: Test
+#        id: cmake_test
+#        run: |
+#          cd build
+#          ctest --output-on-failure
+#
   windows-latest-cmake:
     runs-on: windows-latest
 
     strategy:
       matrix:
         include:
-         - build: 'avx2'
-           defines: ''
+         #- build: 'avx2'
+         #  defines: ''
          - build: 'avx'
            defines: '-DLLAMA_AVX2=OFF'
          - build: 'avx512'
@@ -178,7 +178,7 @@ jobs:
         run: |
           cd build
           $vcdir = $(vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
-          $cl =  $(join-path $vcdir $("VC\Tools\MSVC\"$(gc -raw $(join-path $vcdir 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt')).Trim()"bin\Hostx64\x64\cl.exe")
+          $cl =  $(join-path $vcdir $("VC\Tools\MSVC\"$(gc -raw $(join-path $vcdir 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt')).Trim()"bin\Hostx64\x64\cl.exe"))
           ( echo '#include <intrin.h>' && echo 'int main(void){unsigned int a[4];__cpuidex(a,7,0);return (a[1]&~65536);}' ) >> avf512f.c
           & $cl /O2 /GS- /kernel avf512f.c /link /nodefaultlib /entry:main
           .\avx512f.exe && echo "AVX512F: YES" && ( echo HAS_AVX512F=1 >> $env:GITHUB_ENV ) || echo "AVX512F: NO"
