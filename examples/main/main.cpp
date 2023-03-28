@@ -46,7 +46,7 @@ int main(int argc, char ** argv) {
 
     // save choice to use color for later
     // (note for later: this is a slightly awkward choice)
-    con_st->use_color = params.use_color;
+    con_st.use_color = params.use_color;
 
 #if defined (_WIN32)
     win32_console_init(params.use_color);
