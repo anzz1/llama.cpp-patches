@@ -86,7 +86,7 @@ enum console_color_t {
 struct console_state {
     bool use_color = false;
     console_color_t color = CONSOLE_COLOR_DEFAULT;
-}
+};
 
 void set_console_color(console_state* con_st, console_color_t color);
 
