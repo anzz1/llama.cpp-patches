@@ -1554,7 +1554,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
             fwrite(reinterpret_cast<char *>(&length), 1, sizeof(length), fout);
             fwrite(reinterpret_cast<char *>(&ftype), 1, sizeof(ftype), fout);
             for (int i = 0; i < n_dims; ++i) {
-                fwrite((char*) (&ne[i]), 1, sizeof(ne[i]), fout);
+                fwrite(reinterpret_cast<char *>(&ne[i]), 1, sizeof(ne[i]), fout);
             }
             fwrite(&name[0], 1, length, fout);
 
