@@ -618,9 +618,9 @@ static bool llama_model_load(
                 int32_t length;
                 int32_t ftype;
 
-                fread((char*) &n_dims, 1, sizeof(n_dims), fin);
-                fread((char*) &length, 1, sizeof(length), fin);
-                fread((char*) &ftype, 1, sizeof(ftype), fin);
+                fread(reinterpret_cast<char *>(&n_dims), 1, sizeof(n_dims), fin);
+                fread(reinterpret_cast<char *>(&length), 1, sizeof(length), fin);
+                fread(reinterpret_cast<char *>(&ftype), 1, sizeof(ftype), fin);
 
                 if (feof(fin)) {
                     break;
@@ -629,7 +629,7 @@ static bool llama_model_load(
                 int32_t nelements = 1;
                 int32_t ne[2] = { 1, 1 };
                 for (int i = 0; i < n_dims; ++i) {
-                    fread((char*) (&ne[i]), 1, sizeof(ne[i]), fin);
+                    fread((reinterpret_cast<char *>(&ne[i]), 1, sizeof(ne[i]), fin);
                     nelements *= ne[i];
                 }
 
@@ -736,7 +736,7 @@ static bool llama_model_load(
                     }
 
                     if (part_id == 0) {
-                        fread((char*) (tensor->data), 1, ggml_nbytes(tensor), fin);
+                        fread(reinterpret_cast<char *>(tensor->data), 1, ggml_nbytes(tensor), fin);
                     } else {
                         fseek(fin, ggml_nbytes(tensor), SEEK_CUR);
                     }
@@ -758,7 +758,7 @@ static bool llama_model_load(
                         for (int i1 = 0; i1 < ne[1]; ++i1) {
                             const size_t offset_row = i1*row_size;
                             const size_t offset = offset_row + ((part_id*np0)/ggml_blck_size(tensor->type))*ggml_type_size(tensor->type);
-                            fread((char*) (tensor->data) + offset, 1, row_size/n_parts, fin);
+                            fread(reinterpret_cast<char *>(tensor->data) + offset, 1, row_size/n_parts, fin);
                         }
                     } else {
                         const int np1 = ne[1];
@@ -767,7 +767,7 @@ static bool llama_model_load(
 
                         for (int i1 = 0; i1 < ne[1]; ++i1) {
                             const size_t offset_row = (i1 + part_id*np1)*row_size;
-                            fread((char*) (tensor->data) + offset_row, 1, row_size, fin);
+                            fread(reinterpret_cast<char *>(tensor->data) + offset_row, 1, row_size, fin);
                         }
                     }
 
@@ -1485,9 +1485,9 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
             int32_t length;
             int32_t ftype;
 
-            fread((char*)(&n_dims), 1, sizeof(n_dims), finp);
-            fread((char*)(&length), 1, sizeof(length), finp);
-            fread((char*)(&ftype), 1, sizeof(ftype), finp);
+            fread(reinterpret_cast<char *>(&n_dims), 1, sizeof(n_dims), finp);
+            fread(reinterpret_cast<char *>(&length), 1, sizeof(length), finp);
+            fread(reinterpret_cast<char *>(&ftype), 1, sizeof(ftype), finp);
 
             if (feof(finp)) {
                 break;
@@ -1496,7 +1496,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
             int32_t nelements = 1;
             int32_t ne[2] = { 1, 1 };
             for (int i = 0; i < n_dims; ++i) {
-                fread ((char*)(&ne[i]), 1, sizeof(ne[i]), finp);
+                fread (reinterpret_cast<char *>(&ne[i]), 1, sizeof(ne[i]), finp);
                 nelements *= ne[i];
             }
 
@@ -1532,14 +1532,14 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
 
                 if (ftype == 1) {
                     data_f16.resize(nelements);
-                    fread((char*)(data_f16.data()), 1, nelements * sizeof(ggml_fp16_t), finp);
+                    fread(reinterpret_cast<char *>(data_f16.data()), 1, nelements * sizeof(ggml_fp16_t), finp);
                     data_f32.resize(nelements);
                     for (int i = 0; i < nelements; ++i) {
                         data_f32[i] = ggml_fp16_to_fp32(data_f16[i]);
                     }
                 } else {
                     data_f32.resize(nelements);
-                    fread((char*) (data_f32.data()), 1, nelements * sizeof(float), finp);
+                    fread(reinterpret_cast<char *>(data_f32.data()), 1, nelements * sizeof(float), finp);
                 }
 
                 ftype = itype;
@@ -1547,12 +1547,12 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
                 const int bpe = (ftype == 0) ? sizeof(float) : sizeof(uint16_t);
 
                 data_u8.resize(nelements*bpe);
-                fread((char*) (data_u8.data()), 1, nelements * bpe, finp);
+                fread(reinterpret_cast<char *>(data_u8.data()), 1, nelements * bpe, finp);
             }
 
-            fwrite((char*) (&n_dims), 1, sizeof(n_dims), fout);
-            fwrite((char*) (&length), 1, sizeof(length), fout);
-            fwrite((char*) (&ftype), 1, sizeof(ftype), fout);
+            fwrite(reinterpret_cast<char *>(&n_dims), 1, sizeof(n_dims), fout);
+            fwrite(reinterpret_cast<char *>(&length), 1, sizeof(length), fout);
+            fwrite(reinterpret_cast<char *>(&ftype), 1, sizeof(ftype), fout);
             for (int i = 0; i < n_dims; ++i) {
                 fwrite((char*) (&ne[i]), 1, sizeof(ne[i]), fout);
             }
@@ -1581,7 +1581,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
                         }
                 }
 
-                fwrite((char*)(work.data()), 1, cur_size, fout);
+                fwrite(reinterpret_cast<char *>(work.data()), 1, cur_size, fout);
                 total_size_new += cur_size;
 
                 printf("size = %8.2f MB -> %8.2f MB | hist: ", nelements * sizeof(float)/1024.0/1024.0, cur_size/1024.0/1024.0);
@@ -1595,7 +1595,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
                 printf("\n");
             } else {
                 printf("size = %8.3f MB\n", data_u8.size()/1024.0/1024.0);
-                fwrite((char*)(data_u8.data()), 1, data_u8.size(), fout);
+                fwrite(reinterpret_cast<char *>(data_u8.data()), 1, data_u8.size(), fout);
                 total_size_new += data_u8.size();
             }
 
