@@ -303,13 +303,12 @@ static bool llama_model_load(
 
     lctx.t_start_us = t_start_us;
 
-    std::vector<char> f_buf(1024*1024);
-
     auto & model = lctx.model;
     auto & vocab = lctx.vocab;
 
-    auto fin = std::ifstream(fname, std::ios::binary);
-    fin.rdbuf()->pubsetbuf(f_buf.data(), f_buf.size());
+    char f_buf[1024*1024];
+    FILE *fin = fopen(fname.data(), "rb");
+    setvbuf(fin, f_buf, _IOFBF, sizeof(f_buf));
     if (!fin) {
         fprintf(stderr, "%s: failed to open '%s'\n", __func__, fname.c_str());
         return false;
@@ -318,7 +317,7 @@ static bool llama_model_load(
     // verify magic
     {
         uint32_t magic;
-        fin.read((char *) &magic, sizeof(magic));
+        fread((char *) &magic, 1, sizeof(magic), fin);
         if (magic == LLAMA_FILE_MAGIC_UNVERSIONED) {
             fprintf(stderr, "%s: invalid model file '%s' (too old, regenerate your model files or convert them with convert-unversioned-ggml-to-ggml.py!)\n",
                     __func__, fname.c_str());
@@ -330,7 +329,7 @@ static bool llama_model_load(
         }
 
         uint32_t format_version;
-        fin.read((char *) &format_version, sizeof(format_version));
+        fread((char *) &format_version, 1, sizeof(format_version), fin);
 
         if (format_version != LLAMA_FILE_VERSION) {
             fprintf(stderr, "%s: invalid model file '%s' (unsupported format version %" PRIu32 ", expected %d)\n",
@@ -345,14 +344,14 @@ static bool llama_model_load(
     {
         auto & hparams = model.hparams;
 
-        fin.read((char *) &hparams.n_vocab, sizeof(hparams.n_vocab));
-        //fin.read((char *) &hparams.n_ctx,   sizeof(hparams.n_ctx));
-        fin.read((char *) &hparams.n_embd,  sizeof(hparams.n_embd));
-        fin.read((char *) &hparams.n_mult,  sizeof(hparams.n_mult));
-        fin.read((char *) &hparams.n_head,  sizeof(hparams.n_head));
-        fin.read((char *) &hparams.n_layer, sizeof(hparams.n_layer));
-        fin.read((char *) &hparams.n_rot,   sizeof(hparams.n_rot));
-        fin.read((char *) &hparams.f16,     sizeof(hparams.f16));
+        fread((char *) &hparams.n_vocab, 1, sizeof(hparams.n_vocab), fin);
+        //fread((char *) &hparams.n_ctx, 1, sizeof(hparams.n_ctx), fin);
+        fread((char *) &hparams.n_embd, 1, sizeof(hparams.n_embd), fin);
+        fread((char *) &hparams.n_mult, 1, sizeof(hparams.n_mult), fin);
+        fread((char *) &hparams.n_head, 1, sizeof(hparams.n_head), fin);
+        fread((char *) &hparams.n_layer, 1, sizeof(hparams.n_layer), fin);
+        fread((char *) &hparams.n_rot, 1, sizeof(hparams.n_rot), fin);
+        fread((char *) &hparams.f16, 1, sizeof(hparams.f16), fin);
 
         hparams.n_ctx = n_ctx;
 
@@ -405,19 +404,20 @@ static bool llama_model_load(
 
         for (int i = 0; i < model.hparams.n_vocab; i++) {
             uint32_t len;
-            fin.read((char *) &len, sizeof(len));
+            fread((char*)&len, 1, sizeof(len), fin);
 
             word.resize(len);
             if (len > 0) {
                 tmp.resize(len);
-                fin.read(tmp.data(), len);
+                fread(tmp.data(), 1, len, fin);
                 word.assign(tmp.data(), len);
-            } else {
+            }
+            else {
                 word.clear();
             }
 
             float score;
-            fin.read((char *) &score, sizeof(score));
+            fread((char *) &score, 1, sizeof(score), fin);
 
             vocab.token_to_id[word] = i;
 
@@ -576,9 +576,9 @@ static bool llama_model_load(
         }
     }
 
-    const size_t file_offset = fin.tellg();
+    const size_t file_offset = ftell(fin);
 
-    fin.close();
+    fclose(fin);
 
     std::vector<uint8_t> tmp;
 
@@ -597,13 +597,13 @@ static bool llama_model_load(
 
         fprintf(stderr, "%s: loading model part %d/%d from '%s'\n", __func__, i+1, n_parts, fname_part.c_str());
 
-        fin = std::ifstream(fname_part, std::ios::binary);
-        fin.rdbuf()->pubsetbuf(f_buf.data(), f_buf.size());
+        fin = fopen(fname_part.c_str(), "rb");
+        setvbuf(fin, f_buf, _IOFBF, sizeof(f_buf));
 
-        fin.seekg(0, fin.end);
-        const size_t file_size = fin.tellg();
+        fseek(fin, 0, SEEK_END);
+        const size_t file_size = ftell(fin);
 
-        fin.seekg(file_offset);
+        fseek(fin, file_offset, SEEK_SET);
 
         // load weights
         {
@@ -618,23 +618,23 @@ static bool llama_model_load(
                 int32_t length;
                 int32_t ftype;
 
-                fin.read(reinterpret_cast<char *>(&n_dims), sizeof(n_dims));
-                fin.read(reinterpret_cast<char *>(&length), sizeof(length));
-                fin.read(reinterpret_cast<char *>(&ftype),  sizeof(ftype));
+                fread((char*) &n_dims, 1, sizeof(n_dims), fin);
+                fread((char*) &length, 1, sizeof(length), fin);
+                fread((char*) &ftype, 1, sizeof(ftype), fin);
 
-                if (fin.eof()) {
+                if (feof(fin)) {
                     break;
                 }
 
                 int32_t nelements = 1;
                 int32_t ne[2] = { 1, 1 };
                 for (int i = 0; i < n_dims; ++i) {
-                    fin.read(reinterpret_cast<char *>(&ne[i]), sizeof(ne[i]));
+                    fread((char*) (&ne[i]), 1, sizeof(ne[i]), fin);
                     nelements *= ne[i];
                 }
 
                 std::string name(length, 0);
-                fin.read(&name[0], length);
+                fread(&name[0], 1, length, fin);
 
                 if (model.tensors.find(name.data()) == model.tensors.end()) {
                     fprintf(stderr, "%s: unknown tensor '%s' in model file\n", __func__, name.data());
@@ -736,9 +736,9 @@ static bool llama_model_load(
                     }
 
                     if (part_id == 0) {
-                        fin.read(reinterpret_cast<char *>(tensor->data), ggml_nbytes(tensor));
+                        fread((char*) (tensor->data), 1, ggml_nbytes(tensor), fin);
                     } else {
-                        fin.seekg(ggml_nbytes(tensor), std::ios::cur);
+                        fseek(fin, ggml_nbytes(tensor), SEEK_CUR);
                     }
 
                     total_size += ggml_nbytes(tensor);
@@ -758,7 +758,7 @@ static bool llama_model_load(
                         for (int i1 = 0; i1 < ne[1]; ++i1) {
                             const size_t offset_row = i1*row_size;
                             const size_t offset = offset_row + ((part_id*np0)/ggml_blck_size(tensor->type))*ggml_type_size(tensor->type);
-                            fin.read(reinterpret_cast<char *>(tensor->data) + offset, row_size/n_parts);
+                            fread((char*) (tensor->data) + offset, 1, row_size/n_parts, fin);
                         }
                     } else {
                         const int np1 = ne[1];
@@ -767,7 +767,7 @@ static bool llama_model_load(
 
                         for (int i1 = 0; i1 < ne[1]; ++i1) {
                             const size_t offset_row = (i1 + part_id*np1)*row_size;
-                            fin.read(reinterpret_cast<char *>(tensor->data) + offset_row, row_size);
+                            fread((char*) (tensor->data) + offset_row, 1, row_size, fin);
                         }
                     }
 
@@ -779,7 +779,7 @@ static bool llama_model_load(
 
                 // progress
                 if (progress_callback) {
-                    float current_file_progress = float(size_t(fin.tellg()) - file_offset) / float(file_size - file_offset);
+                    float current_file_progress = float(size_t(ftell(fin)) - file_offset) / float(file_size - file_offset);
                     float current_progress = (float(i) + current_file_progress) / float(n_parts);
                     progress_callback(current_progress, progress_callback_user_data);
                 }
@@ -800,7 +800,7 @@ static bool llama_model_load(
             }
         }
 
-        fin.close();
+        fclose(fin);
     }
 
     lctx.t_load_us = ggml_time_us() - t_start_us;
@@ -1363,13 +1363,13 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
 
     printf("%s: loading model from '%s'\n", __func__, fname_inp.c_str());
 
-    auto finp = std::ifstream(fname_inp, std::ios::binary);
+    FILE* finp = fopen(fname_inp.c_str(), "rb");
     if (!finp) {
         fprintf(stderr, "%s: failed to open '%s' for reading\n", __func__, fname_inp.c_str());
         return false;
     }
 
-    auto fout = std::ofstream(fname_out, std::ios::binary);
+    FILE* fout = fopen(fname_out.c_str(), "w+b");
     if (!fout) {
         fprintf(stderr, "%s: failed to open '%s' for writing\n", __func__, fname_out.c_str());
         return false;
@@ -1378,7 +1378,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
     // verify magic
     {
         uint32_t magic;
-        finp.read((char *) &magic, sizeof(magic));
+        fread((char *) &magic, 1, sizeof(magic), finp);
         if (magic == LLAMA_FILE_MAGIC_UNVERSIONED) {
             fprintf(stderr, "%s: invalid model file '%s' (too old, regenerate your model files!)\n",
                     __func__, fname_inp.c_str());
@@ -1389,10 +1389,10 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
             return false;
         }
 
-        fout.write((char *) &magic, sizeof(magic));
+        fwrite((char *) &magic, 1, sizeof(magic), fout);
 
         uint32_t format_version;
-        finp.read((char *) &format_version, sizeof(format_version));
+        fread((char *) &format_version, 1, sizeof(format_version), finp);
 
         if (format_version != LLAMA_FILE_VERSION) {
             fprintf(stderr, "%s: invalid model file '%s' (unsupported format version %" PRIu32 ", expected %d)\n",
@@ -1400,21 +1400,21 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
             return false;
         }
 
-        fout.write((char *) &format_version, sizeof(format_version));
+        fwrite((char *) &format_version, 1, sizeof(format_version), fout);
     }
 
     llama_hparams hparams;
 
     // load hparams
     {
-        finp.read((char *) &hparams.n_vocab, sizeof(hparams.n_vocab));
-        //finp.read((char *) &hparams.n_ctx,   sizeof(hparams.n_ctx));
-        finp.read((char *) &hparams.n_embd,  sizeof(hparams.n_embd));
-        finp.read((char *) &hparams.n_mult,  sizeof(hparams.n_mult));
-        finp.read((char *) &hparams.n_head,  sizeof(hparams.n_head));
-        finp.read((char *) &hparams.n_layer, sizeof(hparams.n_layer));
-        finp.read((char *) &hparams.n_rot,   sizeof(hparams.n_rot));
-        finp.read((char *) &hparams.f16,     sizeof(hparams.f16));
+        fread((char *) &hparams.n_vocab, 1, sizeof(hparams.n_vocab), finp);
+        //fread((char *) &hparams.n_ctx, 1, sizeof(hparams.n_ctx), finp);
+        fread((char *) &hparams.n_embd, 1, sizeof(hparams.n_embd), finp);
+        fread((char *) &hparams.n_mult, 1, sizeof(hparams.n_mult), finp);
+        fread((char *) &hparams.n_head, 1, sizeof(hparams.n_head), finp);
+        fread((char *) &hparams.n_layer, 1, sizeof(hparams.n_layer), finp);
+        fread((char *) &hparams.n_rot, 1, sizeof(hparams.n_rot), finp);
+        fread((char *) &hparams.f16, 1, sizeof(hparams.f16), finp);
 
         printf("%s: n_vocab = %d\n", __func__, hparams.n_vocab);
         printf("%s: n_ctx   = %d\n", __func__, hparams.n_ctx);
@@ -1424,14 +1424,14 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
         printf("%s: n_layer = %d\n", __func__, hparams.n_layer);
         printf("%s: f16     = %d\n", __func__, hparams.f16);
 
-        fout.write((char *) &hparams.n_vocab, sizeof(hparams.n_vocab));
-        //fout.write((char *) &hparams.n_ctx,   sizeof(hparams.n_ctx));
-        fout.write((char *) &hparams.n_embd,  sizeof(hparams.n_embd));
-        fout.write((char *) &hparams.n_mult,  sizeof(hparams.n_mult));
-        fout.write((char *) &hparams.n_head,  sizeof(hparams.n_head));
-        fout.write((char *) &hparams.n_layer, sizeof(hparams.n_layer));
-        fout.write((char *) &hparams.n_rot,   sizeof(hparams.n_rot));
-        fout.write((char *) &itype,           sizeof(hparams.f16));
+        fwrite((char *) &hparams.n_vocab, 1, sizeof(hparams.n_vocab), fout);
+        //fwrite((char *) &hparams.n_ctx, 1, sizeof(hparams.n_ctx), fout);
+        fwrite((char *) &hparams.n_embd, 1, sizeof(hparams.n_embd), fout);
+        fwrite((char *) &hparams.n_mult, 1, sizeof(hparams.n_mult), fout);
+        fwrite((char *) &hparams.n_head, 1, sizeof(hparams.n_head), fout);
+        fwrite((char *) &hparams.n_layer, 1, sizeof(hparams.n_layer), fout);
+        fwrite((char *) &hparams.n_rot, 1, sizeof(hparams.n_rot), fout);
+        fwrite((char *) &itype, 1, sizeof(hparams.f16), fout);
     }
 
     // load vocab
@@ -1448,16 +1448,16 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
         vocab.id_to_token.resize(n_vocab);
         for (int i = 0; i < n_vocab; i++) {
             uint32_t len;
-            finp.read ((char *) &len, sizeof(len));
-            fout.write((char *) &len, sizeof(len));
+            fread((char *) &len, 1, sizeof(len), finp);
+            fwrite((char *) &len, 1, sizeof(len), fout);
 
             word.resize(len);
-            finp.read ((char *) word.data(), len);
-            fout.write((char *) word.data(), len);
+            fread((char *) word.data(), 1, len, finp);
+            fwrite((char *) word.data(), 1, len, fout);
 
             float score;
-            finp.read ((char *) &score, sizeof(score));
-            fout.write((char *) &score, sizeof(score));
+            fread((char *) &score, 1, sizeof(score), finp);
+            fwrite((char *) &score, 1, sizeof(score), fout);
 
             vocab.token_to_id[word] = i;
 
@@ -1485,23 +1485,23 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
             int32_t length;
             int32_t ftype;
 
-            finp.read(reinterpret_cast<char *>(&n_dims), sizeof(n_dims));
-            finp.read(reinterpret_cast<char *>(&length), sizeof(length));
-            finp.read(reinterpret_cast<char *>(&ftype),  sizeof(ftype));
+            fread((char*)(&n_dims), 1, sizeof(n_dims), finp);
+            fread((char*)(&length), 1, sizeof(length), finp);
+            fread((char*)(&ftype), 1, sizeof(ftype), finp);
 
-            if (finp.eof()) {
+            if (feof(finp)) {
                 break;
             }
 
             int32_t nelements = 1;
             int32_t ne[2] = { 1, 1 };
             for (int i = 0; i < n_dims; ++i) {
-                finp.read (reinterpret_cast<char *>(&ne[i]), sizeof(ne[i]));
+                fread ((char*)(&ne[i]), 1, sizeof(ne[i]), finp);
                 nelements *= ne[i];
             }
 
             std::string name(length, 0);
-            finp.read (&name[0], length);
+            fread(&name[0], 1, length, finp);
 
             {
                 static const char * ftype_str[] = { "f32", "f16", "q4_0", "q4_1", };
@@ -1532,14 +1532,14 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
 
                 if (ftype == 1) {
                     data_f16.resize(nelements);
-                    finp.read(reinterpret_cast<char *>(data_f16.data()), nelements * sizeof(ggml_fp16_t));
+                    fread((char*)(data_f16.data()), 1, nelements * sizeof(ggml_fp16_t), finp);
                     data_f32.resize(nelements);
                     for (int i = 0; i < nelements; ++i) {
                         data_f32[i] = ggml_fp16_to_fp32(data_f16[i]);
                     }
                 } else {
                     data_f32.resize(nelements);
-                    finp.read(reinterpret_cast<char *>(data_f32.data()), nelements * sizeof(float));
+                    fread((char*) (data_f32.data()), 1, nelements * sizeof(float), finp);
                 }
 
                 ftype = itype;
@@ -1547,16 +1547,16 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
                 const int bpe = (ftype == 0) ? sizeof(float) : sizeof(uint16_t);
 
                 data_u8.resize(nelements*bpe);
-                finp.read(reinterpret_cast<char *>(data_u8.data()), nelements * bpe);
+                fread((char*) (data_u8.data()), 1, nelements * bpe, finp);
             }
 
-            fout.write(reinterpret_cast<char *>(&n_dims), sizeof(n_dims));
-            fout.write(reinterpret_cast<char *>(&length), sizeof(length));
-            fout.write(reinterpret_cast<char *>(&ftype),  sizeof(ftype));
+            fwrite((char*) (&n_dims), 1, sizeof(n_dims), fout);
+            fwrite((char*) (&length), 1, sizeof(length), fout);
+            fwrite((char*) (&ftype), 1, sizeof(ftype), fout);
             for (int i = 0; i < n_dims; ++i) {
-                fout.write(reinterpret_cast<char *>(&ne[i]), sizeof(ne[i]));
+                fwrite((char*) (&ne[i]), 1, sizeof(ne[i]), fout);
             }
-            fout.write(&name[0], length);
+            fwrite(&name[0], 1, length, fout);
 
             if (quantize) {
                 printf("quantizing .. ");
@@ -1581,7 +1581,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
                         }
                 }
 
-                fout.write(reinterpret_cast<char *>(work.data()), cur_size);
+                fwrite((char*)(work.data()), 1, cur_size, fout);
                 total_size_new += cur_size;
 
                 printf("size = %8.2f MB -> %8.2f MB | hist: ", nelements * sizeof(float)/1024.0/1024.0, cur_size/1024.0/1024.0);
@@ -1595,7 +1595,7 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
                 printf("\n");
             } else {
                 printf("size = %8.3f MB\n", data_u8.size()/1024.0/1024.0);
-                fout.write(reinterpret_cast<char *>(data_u8.data()), data_u8.size());
+                fwrite((char*)(data_u8.data()), 1, data_u8.size(), fout);
                 total_size_new += data_u8.size();
             }
 
@@ -1619,8 +1619,8 @@ static bool llama_model_quantize_internal(const std::string & fname_inp, const s
         }
     }
 
-    finp.close();
-    fout.close();
+    fclose(finp);
+    fclose(fout);
 
     return true;
 }
