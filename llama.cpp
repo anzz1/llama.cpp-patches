@@ -307,7 +307,7 @@ static bool llama_model_load(
     auto & vocab = lctx.vocab;
 
     char f_buf[1024*1024];
-    FILE *fin = fopen(fname.data(), "rb");
+    FILE *fin = fopen(fname.c_str(), "rb");
     setvbuf(fin, f_buf, _IOFBF, sizeof(f_buf));
     if (!fin) {
         fprintf(stderr, "%s: failed to open '%s'\n", __func__, fname.c_str());
