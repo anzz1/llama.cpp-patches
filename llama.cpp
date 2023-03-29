@@ -629,7 +629,7 @@ static bool llama_model_load(
                 int32_t nelements = 1;
                 int32_t ne[2] = { 1, 1 };
                 for (int i = 0; i < n_dims; ++i) {
-                    fread((reinterpret_cast<char *>(&ne[i]), 1, sizeof(ne[i]), fin);
+                    fread(reinterpret_cast<char *>(&ne[i]), 1, sizeof(ne[i]), fin);
                     nelements *= ne[i];
                 }
 
