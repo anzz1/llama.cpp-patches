@@ -576,7 +576,7 @@ static bool llama_model_load(
         }
     }
 
-    const size_t file_offset = ftell(fin);
+    const size_t file_offset = _ftelli64(fin);
 
     fclose(fin);
 
@@ -600,10 +600,10 @@ static bool llama_model_load(
         fin = fopen(fname_part.c_str(), "rb");
         setvbuf(fin, f_buf, _IOFBF, sizeof(f_buf));
 
-        fseek(fin, 0, SEEK_END);
-        const size_t file_size = ftell(fin);
+        _fseeki64(fin, 0, SEEK_END);
+        const size_t file_size = _ftelli64(fin);
 
-        fseek(fin, file_offset, SEEK_SET);
+        _fseeki64(fin, file_offset, SEEK_SET);
 
         // load weights
         {
@@ -738,7 +738,7 @@ static bool llama_model_load(
                     if (part_id == 0) {
                         fread(reinterpret_cast<char *>(tensor->data), 1, ggml_nbytes(tensor), fin);
                     } else {
-                        fseek(fin, ggml_nbytes(tensor), SEEK_CUR);
+                        _fseeki64(fin, ggml_nbytes(tensor), SEEK_CUR);
                     }
 
                     total_size += ggml_nbytes(tensor);
@@ -779,7 +779,7 @@ static bool llama_model_load(
 
                 // progress
                 if (progress_callback) {
-                    float current_file_progress = float(size_t(ftell(fin)) - file_offset) / float(file_size - file_offset);
+                    float current_file_progress = float(size_t(_ftelli64(fin)) - file_offset) / float(file_size - file_offset);
                     float current_progress = (float(i) + current_file_progress) / float(n_parts);
                     progress_callback(current_progress, progress_callback_user_data);
                 }
