@@ -209,10 +209,10 @@ jobs:
     runs-on: ubuntu-latest
 
     needs:
-      - ubuntu-latest-make
-      - ubuntu-latest-cmake
-      - macOS-latest-make
-      - macOS-latest-cmake
+#      - ubuntu-latest-make
+#      - ubuntu-latest-cmake
+#      - macOS-latest-make
+#      - macOS-latest-cmake
       - windows-latest-cmake
 
     steps:
